@@ -66,6 +66,8 @@ class VendorModelDialog: public wxDialog
     [[nodiscard]] pugi::xml_document* GetXMLFromURL(wxURI url, std::string& filename, wxProgressDialog* prog, int low, int high, bool keepProgress) const;
     [[nodiscard]] bool LoadTree(wxProgressDialog* prog, int low = 0, int high = 100);
     void AddHierachy(wxTreeItemId v, MVendor* vendor, std::list<MVendorCategory*> categories, const std::string& pathSoFar = "");
+    void AddHierachyFiltered(wxTreeItemId v, MVendor* vendor, std::list<MVendorCategory*> categories, const std::string& pathSoFar = "");
+    bool AddHierachyFiltered(wxTreeItemId parent, MVendor* vendor, MVendorCategory* category, const std::string& pathSoFar);
     void AddModels(wxTreeItemId v, MVendor* vendor, std::string categoryId, const std::string& pathSoFar = "");
     void ValidateWindow();
     void PopulateVendorPanel(MVendor* vendor);

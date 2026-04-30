@@ -1145,6 +1145,7 @@ void VendorModelDialog::RebuildTreeUI()
     spdlog::info("VMD::RTUI step 3: AddRoot");
     wxTreeItemId root = TreeCtrl_Navigator->AddRoot("Vendors");
     wxTreeItemId first = root;
+    const bool filterActive = !_filterTokens.empty();
     spdlog::info("VMD::RTUI step 4: vendor loop start");
     int vIdx = 0;
     for (const auto& it : _vendors)
@@ -1157,7 +1158,11 @@ void VendorModelDialog::RebuildTreeUI()
         }
         if (!IsVendorSuppressed(it->_name))
         {
-            AddHierachy(v, it, it->_categories, it->_name);
+            if (filterActive) {
+                AddHierachyFiltered(v, it, it->_categories, it->_name);
+            } else {
+                AddHierachy(v, it, it->_categories, it->_name);
+            }
         }
         spdlog::info("VMD::RTUI vendor[{}] '{}' end", vIdx, it->_name);
         vIdx++;
@@ -1173,31 +1178,29 @@ void VendorModelDialog::RebuildTreeUI()
         _initialBuild = false;
     }
 
-    // Two passes:
-    // 1) The original DeleteEmptyCategories only deletes leaf categories
-    //    that were already empty when first visited. After it deletes a
-    //    leaf, the parent may now be empty, but the recursion never
-    //    re-checks it. With the experimental filter trimming model leaves,
-    //    that leaves whole chains of empty parent categories on screen
-    //    (e.g. "DayCor Printed Props -> Hats" when no model named Hats
-    //    matches "pumpkin").
-    // 2) PruneEmptyBranches walks the tree bottom-up and also drops
-    //    empty Vendor nodes, so the final tree shows only branches that
-    //    actually have at least one matching model leaf.
-    spdlog::info("VMD::RTUI step 6: DeleteEmptyCategories pass start");
-    wxTreeItemIdValue cookie;
-    int dec = 0;
-    for (auto l1 = TreeCtrl_Navigator->GetFirstChild(root, cookie); l1.IsOk(); l1 = TreeCtrl_Navigator->GetNextChild(root, cookie))
-    {
-        spdlog::info("VMD::RTUI DEC vendor {} begin", dec);
-        UNUSED(DeleteEmptyCategories(l1));
-        spdlog::info("VMD::RTUI DEC vendor {} end", dec);
-        dec++;
+    if (filterActive) {
+        // Filter rebuilds now only create branches that already contain
+        // matching descendants, which avoids the heavy build-then-prune
+        // cycle that was stressing the Win32 tree control. We still do a
+        // final vendor prune so suppressed vendors or category roots with
+        // no surviving descendants disappear cleanly under the filter.
+        spdlog::info("VMD::RTUI step 6: filtered vendor prune start");
+        PruneEmptyBranches(root);
+        spdlog::info("VMD::RTUI step 7: filtered vendor prune done");
+    } else {
+        // Unfiltered builds preserve the legacy eagerly-expanded tree.
+        spdlog::info("VMD::RTUI step 6: DeleteEmptyCategories pass start");
+        wxTreeItemIdValue cookie;
+        int dec = 0;
+        for (auto l1 = TreeCtrl_Navigator->GetFirstChild(root, cookie); l1.IsOk(); l1 = TreeCtrl_Navigator->GetNextChild(root, cookie))
+        {
+            spdlog::info("VMD::RTUI DEC vendor {} begin", dec);
+            UNUSED(DeleteEmptyCategories(l1));
+            spdlog::info("VMD::RTUI DEC vendor {} end", dec);
+            dec++;
+        }
+        spdlog::info("VMD::RTUI step 7: DeleteEmptyCategories pass done");
     }
-    spdlog::info("VMD::RTUI step 7: DeleteEmptyCategories pass done");
-    spdlog::info("VMD::RTUI step 8: PruneEmptyBranches start");
-    PruneEmptyBranches(root);
-    spdlog::info("VMD::RTUI step 9: PruneEmptyBranches done");
 
     // Per-vendor auto-expand removed: even with collapsed categories
     // it hung on Windows for some vendors (EFL Designs). Tree shows
@@ -1395,6 +1398,67 @@ void VendorModelDialog::AddHierachy(wxTreeItemId id, MVendor* vendor, std::list<
             TreeCtrl_Navigator->Expand(tid);
         }
     }
+}
+
+void VendorModelDialog::AddHierachyFiltered(wxTreeItemId id, MVendor* vendor, std::list<MVendorCategory*> categories, const std::string& pathSoFar)
+{
+    for (const auto& it : categories)
+    {
+        std::string nextPath = pathSoFar.empty() ? it->_name : pathSoFar + " / " + it->_name;
+        UNUSED(AddHierachyFiltered(id, vendor, it, nextPath));
+    }
+}
+
+bool VendorModelDialog::AddHierachyFiltered(wxTreeItemId parent, MVendor* vendor, MVendorCategory* category, const std::string& pathSoFar)
+{
+    wxTreeItemId tid;
+    bool created = false;
+    auto ensureCategory = [&]() -> wxTreeItemId {
+        if (!created) {
+            tid = TreeCtrl_Navigator->AppendItem(parent, category->_name, -1, -1, new MCategoryTreeItemData(category));
+            created = true;
+        }
+        return tid;
+    };
+
+    for (const auto& child : category->_categories)
+    {
+        std::string nextPath = pathSoFar + " / " + child->_name;
+        if (AddHierachyFiltered(ensureCategory(), vendor, child, nextPath)) {
+            created = true;
+        }
+    }
+
+    auto models = vendor->GetModels(category->_id);
+    for (const auto& model : models)
+    {
+        if (!CatalogFilterMatchesPath(pathSoFar, model->_name)) {
+            continue;
+        }
+
+        wxTreeItemId categoryId = ensureCategory();
+        if (model->_wiring.size() > 1)
+        {
+            wxTreeItemId tid2 = TreeCtrl_Navigator->AppendItem(categoryId, model->_name, -1, -1, new MModelTreeItemData(model));
+            for (const auto& wiring : model->_wiring)
+            {
+                wxTreeItemId wiringId = TreeCtrl_Navigator->AppendItem(tid2, wiring->_name, -1, -1, new MWiringTreeItemData(wiring));
+                TreeCtrl_Navigator->SetItemTextColour(wiringId, model->GetColour());
+            }
+        }
+        else if (model->_wiring.empty())
+        {
+            wxTreeItemId modelId = TreeCtrl_Navigator->AppendItem(categoryId, model->_name, -1, -1, new MModelTreeItemData(model));
+            TreeCtrl_Navigator->SetItemTextColour(modelId, model->GetColour());
+        }
+        else
+        {
+            wxTreeItemId wiringId = TreeCtrl_Navigator->AppendItem(categoryId, model->_name, -1, -1, new MWiringTreeItemData(model->_wiring.front()));
+            TreeCtrl_Navigator->SetItemTextColour(wiringId, model->GetColour());
+        }
+    }
+
+    return created;
 }
 
 void VendorModelDialog::AddModels(wxTreeItemId v, MVendor* vendor, std::string categoryId, const std::string& pathSoFar)

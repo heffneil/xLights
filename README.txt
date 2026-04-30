@@ -15,8 +15,11 @@ XLIGHTS/NUTCRACKER RELEASE NOTES
                                 tokenized AND-narrowing. Filter is hierarchy-aware (vendor / category / sub-category
                                 / model), so typing "halloween" or a vendor name surfaces the whole sub-tree, and
                                 "tree EFL" is two AND-narrowed terms — both must appear in the path. Empty
-                                categories and vendors are pruned bottom-up; surviving branches auto-expand while
-                                a filter is active. Debounced 200ms so fast typing doesn't thrash.
+                                categories and vendors are pruned bottom-up, and the filter is debounced 200ms so
+                                fast typing doesn't thrash.
+    -bug (Neil)                 Vendor model catalog: filtering now skips building non-matching category branches to
+                                reduce Win32 tree-control churn and avoid hangs when filtering vendors with large
+                                catalogs such as EFL Designs.
     -enh (dkulp)                Linux: text rendering switched from wxGraphicsContext (Cairo+Pango) to a portable
                                 FreeType+HarfBuzz+Fontconfig backend in src-core/. Text and Shape effects can now
                                 render on background threads on Linux (previously forced to the main thread because
