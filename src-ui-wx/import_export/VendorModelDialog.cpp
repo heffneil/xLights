@@ -1155,19 +1155,34 @@ void VendorModelDialog::RebuildTreeUI()
         spdlog::info("VMD::RTUI vendor[{}] '{}' begin", vIdx, it->_name);
         wxTreeItemId v = TreeCtrl_Navigator->AppendItem(root, it->_name, -1, -1, new MVendorTreeItemData(it));
         const bool vendorMatchesFilter = filterActive && CatalogFilterMatchesPath("", it->_name);
+        std::vector<wxString> descendantTokens = _filterTokens;
         if (first == root)
         {
             first = v;
         }
+        if (vendorMatchesFilter) {
+            descendantTokens = FilterTokensExcludingMatches(it->_name);
+            if (descendantTokens.empty()) {
+                descendantTokens = _filterTokens;
+            }
+        }
         if (!IsVendorSuppressed(it->_name))
         {
             if (filterActive) {
-                if (!vendorMatchesFilter) {
-                    AddHierachyFiltered(v, it, it->_categories, it->_name);
-                }
+                AddHierachyFiltered(v, it, it->_categories, descendantTokens, vendorMatchesFilter ? "" : it->_name);
             } else {
                 AddHierachy(v, it, it->_categories, it->_name);
             }
+        }
+        if (filterActive && vendorMatchesFilter &&
+            TreeCtrl_Navigator->GetChildrenCount(v, false) == 0)
+        {
+            TreeCtrl_Navigator->AppendItem(
+                v,
+                "(vendor name match)",
+                -1,
+                -1,
+                new MVendorTreeItemData(it));
         }
         if (filterActive && !vendorMatchesFilter &&
             TreeCtrl_Navigator->GetChildrenCount(v, false) == 0)
@@ -1304,7 +1319,14 @@ bool VendorModelDialog::PruneEmptyBranches(wxTreeItemId parent)
 bool VendorModelDialog::CatalogFilterMatchesPath(const std::string& pathSoFar,
                                                  const std::string& leafName) const
 {
-    if (_filterTokens.empty()) {
+    return CatalogFilterMatchesPath(pathSoFar, leafName, _filterTokens);
+}
+
+bool VendorModelDialog::CatalogFilterMatchesPath(const std::string& pathSoFar,
+                                                 const std::string& leafName,
+                                                 const std::vector<wxString>& tokens) const
+{
+    if (tokens.empty()) {
         return true;
     }
     // Build a single haystack: "vendor / category / sub / leaf" lower-cased.
@@ -1315,12 +1337,25 @@ bool VendorModelDialog::CatalogFilterMatchesPath(const std::string& pathSoFar,
     }
     haystack += wxString::FromUTF8(leafName);
     haystack.MakeLower();
-    for (const auto& token : _filterTokens) {
+    for (const auto& token : tokens) {
         if (haystack.Find(token) == wxNOT_FOUND) {
             return false;
         }
     }
     return true;
+}
+
+std::vector<wxString> VendorModelDialog::FilterTokensExcludingMatches(const std::string& text) const
+{
+    std::vector<wxString> remaining;
+    wxString haystack = wxString::FromUTF8(text);
+    haystack.MakeLower();
+    for (const auto& token : _filterTokens) {
+        if (haystack.Find(token) == wxNOT_FOUND) {
+            remaining.push_back(token);
+        }
+    }
+    return remaining;
 }
 
 void VendorModelDialog::OnCatalogFilterText(wxCommandEvent& /*event*/)
@@ -1424,16 +1459,16 @@ void VendorModelDialog::AddHierachy(wxTreeItemId id, MVendor* vendor, std::list<
     }
 }
 
-void VendorModelDialog::AddHierachyFiltered(wxTreeItemId id, MVendor* vendor, std::list<MVendorCategory*> categories, const std::string& pathSoFar)
+void VendorModelDialog::AddHierachyFiltered(wxTreeItemId id, MVendor* vendor, std::list<MVendorCategory*> categories, const std::vector<wxString>& tokens, const std::string& pathSoFar)
 {
     for (const auto& it : categories)
     {
         std::string nextPath = pathSoFar.empty() ? it->_name : pathSoFar + " / " + it->_name;
-        UNUSED(AddHierachyFiltered(id, vendor, it, nextPath));
+        UNUSED(AddHierachyFiltered(id, vendor, it, tokens, nextPath));
     }
 }
 
-bool VendorModelDialog::AddHierachyFiltered(wxTreeItemId parent, MVendor* vendor, MVendorCategory* category, const std::string& pathSoFar)
+bool VendorModelDialog::AddHierachyFiltered(wxTreeItemId parent, MVendor* vendor, MVendorCategory* category, const std::vector<wxString>& tokens, const std::string& pathSoFar)
 {
     wxTreeItemId tid;
     bool created = false;
@@ -1448,7 +1483,7 @@ bool VendorModelDialog::AddHierachyFiltered(wxTreeItemId parent, MVendor* vendor
     for (const auto& child : category->_categories)
     {
         std::string nextPath = pathSoFar + " / " + child->_name;
-        if (AddHierachyFiltered(ensureCategory(), vendor, child, nextPath)) {
+        if (AddHierachyFiltered(ensureCategory(), vendor, child, tokens, nextPath)) {
             created = true;
         }
     }
@@ -1456,7 +1491,7 @@ bool VendorModelDialog::AddHierachyFiltered(wxTreeItemId parent, MVendor* vendor
     auto models = vendor->GetModels(category->_id);
     for (const auto& model : models)
     {
-        if (!CatalogFilterMatchesPath(pathSoFar, model->_name)) {
+        if (!CatalogFilterMatchesPath(pathSoFar, model->_name, tokens)) {
             continue;
         }
 
@@ -1480,6 +1515,7 @@ bool VendorModelDialog::AddHierachyFiltered(wxTreeItemId parent, MVendor* vendor
             wxTreeItemId wiringId = TreeCtrl_Navigator->AppendItem(categoryId, model->_name, -1, -1, new MWiringTreeItemData(model->_wiring.front()));
             TreeCtrl_Navigator->SetItemTextColour(wiringId, model->GetColour());
         }
+        created = true;
     }
 
     return created;

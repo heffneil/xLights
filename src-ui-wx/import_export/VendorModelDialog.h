@@ -66,8 +66,8 @@ class VendorModelDialog: public wxDialog
     [[nodiscard]] pugi::xml_document* GetXMLFromURL(wxURI url, std::string& filename, wxProgressDialog* prog, int low, int high, bool keepProgress) const;
     [[nodiscard]] bool LoadTree(wxProgressDialog* prog, int low = 0, int high = 100);
     void AddHierachy(wxTreeItemId v, MVendor* vendor, std::list<MVendorCategory*> categories, const std::string& pathSoFar = "");
-    void AddHierachyFiltered(wxTreeItemId v, MVendor* vendor, std::list<MVendorCategory*> categories, const std::string& pathSoFar = "");
-    bool AddHierachyFiltered(wxTreeItemId parent, MVendor* vendor, MVendorCategory* category, const std::string& pathSoFar);
+    void AddHierachyFiltered(wxTreeItemId v, MVendor* vendor, std::list<MVendorCategory*> categories, const std::vector<wxString>& tokens, const std::string& pathSoFar = "");
+    bool AddHierachyFiltered(wxTreeItemId parent, MVendor* vendor, MVendorCategory* category, const std::vector<wxString>& tokens, const std::string& pathSoFar);
     void AddModels(wxTreeItemId v, MVendor* vendor, std::string categoryId, const std::string& pathSoFar = "");
     void ValidateWindow();
     void PopulateVendorPanel(MVendor* vendor);
@@ -110,6 +110,10 @@ class VendorModelDialog: public wxDialog
     // anything.
     bool CatalogFilterMatchesPath(const std::string& pathSoFar,
                                   const std::string& leafName) const;
+    bool CatalogFilterMatchesPath(const std::string& pathSoFar,
+                                  const std::string& leafName,
+                                  const std::vector<wxString>& tokens) const;
+    std::vector<wxString> FilterTokensExcludingMatches(const std::string& text) const;
     void RebuildTreeUI();
     // Bottom-up prune that drops Category and Vendor nodes whose
     // descendants were filtered away. Returns true if the node itself
