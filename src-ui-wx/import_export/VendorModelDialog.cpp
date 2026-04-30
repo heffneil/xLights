@@ -1137,6 +1137,8 @@ void VendorModelDialog::RebuildTreeUI()
     // around makes SetItemBold on the next selection-change hang on
     // Windows.
     _lastSearchItem = wxTreeItemId();
+    PopulateModelPanel((MModel*)nullptr);
+    PopulateVendorPanel(nullptr);
 
     spdlog::info("VMD::RTUI step 1: UnselectAll");
     TreeCtrl_Navigator->UnselectAll();
@@ -1152,6 +1154,7 @@ void VendorModelDialog::RebuildTreeUI()
     {
         spdlog::info("VMD::RTUI vendor[{}] '{}' begin", vIdx, it->_name);
         wxTreeItemId v = TreeCtrl_Navigator->AppendItem(root, it->_name, -1, -1, new MVendorTreeItemData(it));
+        const bool vendorMatchesFilter = filterActive && CatalogFilterMatchesPath("", it->_name);
         if (first == root)
         {
             first = v;
@@ -1159,10 +1162,23 @@ void VendorModelDialog::RebuildTreeUI()
         if (!IsVendorSuppressed(it->_name))
         {
             if (filterActive) {
-                AddHierachyFiltered(v, it, it->_categories, it->_name);
+                if (!vendorMatchesFilter) {
+                    AddHierachyFiltered(v, it, it->_categories, it->_name);
+                }
             } else {
                 AddHierachy(v, it, it->_categories, it->_name);
             }
+        }
+        if (filterActive && !vendorMatchesFilter &&
+            TreeCtrl_Navigator->GetChildrenCount(v, false) == 0)
+        {
+            if (first == v) {
+                first = root;
+            }
+            TreeCtrl_Navigator->Delete(v);
+            spdlog::info("VMD::RTUI vendor[{}] '{}' removed (no filtered descendants)", vIdx, it->_name);
+            vIdx++;
+            continue;
         }
         spdlog::info("VMD::RTUI vendor[{}] '{}' end", vIdx, it->_name);
         vIdx++;
