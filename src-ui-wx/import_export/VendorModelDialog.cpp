@@ -1491,7 +1491,7 @@ bool VendorModelDialog::AddHierachyFiltered(wxTreeItemId parent, MVendor* vendor
     auto models = vendor->GetModels(category->_id);
     for (const auto& model : models)
     {
-        if (!CatalogFilterMatchesPath(pathSoFar, model->_name, tokens)) {
+        if (!CatalogFilterMatchesPath("", model->_name, tokens)) {
             continue;
         }
 
