@@ -1287,6 +1287,14 @@ bool VendorModelDialog::PruneEmptyBranches(wxTreeItemId parent)
                 return false;
             }
         }
+        if (type == "Vendor" && !_filterTokens.empty()) {
+            auto* vd = static_cast<MVendorTreeItemData*>(tid);
+            if (vd->GetVendor() != nullptr &&
+                CatalogFilterMatchesPath("", vd->GetVendor()->_name))
+            {
+                return false;
+            }
+        }
         TreeCtrl_Navigator->Delete(parent);
         return true;
     }
