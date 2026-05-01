@@ -1162,7 +1162,7 @@ void VendorModelDialog::RebuildTreeUI()
         if (!IsVendorSuppressed(it->_name))
         {
             if (filterActive) {
-                AddHierachyFiltered(v, it, it->_categories, _filterTokens, "");
+                AddHierachyFiltered(v, it, it->_categories, _filterTokens, it->_name);
             } else {
                 AddHierachy(v, it, it->_categories, it->_name);
             }
@@ -1433,8 +1433,7 @@ void VendorModelDialog::AddHierachyFiltered(wxTreeItemId id, MVendor* vendor, st
 {
     for (const auto& it : categories)
     {
-        std::string nextPath = pathSoFar.empty() ? it->_name : pathSoFar + " / " + it->_name;
-        UNUSED(AddHierachyFiltered(id, vendor, it, tokens, nextPath));
+        UNUSED(AddHierachyFiltered(id, vendor, it, tokens, pathSoFar));
     }
 }
 
@@ -1452,8 +1451,7 @@ bool VendorModelDialog::AddHierachyFiltered(wxTreeItemId parent, MVendor* vendor
 
     for (const auto& child : category->_categories)
     {
-        std::string nextPath = pathSoFar + " / " + child->_name;
-        if (AddHierachyFiltered(ensureCategory(), vendor, child, tokens, nextPath)) {
+        if (AddHierachyFiltered(ensureCategory(), vendor, child, tokens, pathSoFar)) {
             created = true;
         }
     }
