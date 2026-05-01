@@ -113,7 +113,6 @@ class VendorModelDialog: public wxDialog
     bool CatalogFilterMatchesPath(const std::string& pathSoFar,
                                   const std::string& leafName,
                                   const std::vector<wxString>& tokens) const;
-    std::vector<wxString> FilterTokensExcludingMatches(const std::string& text) const;
     void RebuildTreeUI();
     // Bottom-up prune that drops Category and Vendor nodes whose
     // descendants were filtered away. Returns true if the node itself

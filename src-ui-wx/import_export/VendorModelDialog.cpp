@@ -1155,34 +1155,17 @@ void VendorModelDialog::RebuildTreeUI()
         spdlog::info("VMD::RTUI vendor[{}] '{}' begin", vIdx, it->_name);
         wxTreeItemId v = TreeCtrl_Navigator->AppendItem(root, it->_name, -1, -1, new MVendorTreeItemData(it));
         const bool vendorMatchesFilter = filterActive && CatalogFilterMatchesPath("", it->_name);
-        std::vector<wxString> descendantTokens = _filterTokens;
         if (first == root)
         {
             first = v;
         }
-        if (vendorMatchesFilter) {
-            descendantTokens = FilterTokensExcludingMatches(it->_name);
-            if (descendantTokens.empty()) {
-                descendantTokens = _filterTokens;
-            }
-        }
         if (!IsVendorSuppressed(it->_name))
         {
             if (filterActive) {
-                AddHierachyFiltered(v, it, it->_categories, descendantTokens, vendorMatchesFilter ? "" : it->_name);
+                AddHierachyFiltered(v, it, it->_categories, _filterTokens, "");
             } else {
                 AddHierachy(v, it, it->_categories, it->_name);
             }
-        }
-        if (filterActive && vendorMatchesFilter &&
-            TreeCtrl_Navigator->GetChildrenCount(v, false) == 0)
-        {
-            TreeCtrl_Navigator->AppendItem(
-                v,
-                "(vendor name match)",
-                -1,
-                -1,
-                new MVendorTreeItemData(it));
         }
         if (filterActive && !vendorMatchesFilter &&
             TreeCtrl_Navigator->GetChildrenCount(v, false) == 0)
@@ -1343,19 +1326,6 @@ bool VendorModelDialog::CatalogFilterMatchesPath(const std::string& pathSoFar,
         }
     }
     return true;
-}
-
-std::vector<wxString> VendorModelDialog::FilterTokensExcludingMatches(const std::string& text) const
-{
-    std::vector<wxString> remaining;
-    wxString haystack = wxString::FromUTF8(text);
-    haystack.MakeLower();
-    for (const auto& token : _filterTokens) {
-        if (haystack.Find(token) == wxNOT_FOUND) {
-            remaining.push_back(token);
-        }
-    }
-    return remaining;
 }
 
 void VendorModelDialog::OnCatalogFilterText(wxCommandEvent& /*event*/)
