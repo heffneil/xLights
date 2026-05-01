@@ -1154,7 +1154,6 @@ void VendorModelDialog::RebuildTreeUI()
     {
         spdlog::info("VMD::RTUI vendor[{}] '{}' begin", vIdx, it->_name);
         wxTreeItemId v = TreeCtrl_Navigator->AppendItem(root, it->_name, -1, -1, new MVendorTreeItemData(it));
-        const bool vendorMatchesFilter = filterActive && CatalogFilterMatchesPath("", it->_name);
         if (first == root)
         {
             first = v;
@@ -1167,8 +1166,7 @@ void VendorModelDialog::RebuildTreeUI()
                 AddHierachy(v, it, it->_categories, it->_name);
             }
         }
-        if (filterActive && !vendorMatchesFilter &&
-            TreeCtrl_Navigator->GetChildrenCount(v, false) == 0)
+        if (filterActive && TreeCtrl_Navigator->GetChildrenCount(v, false) == 0)
         {
             if (first == v) {
                 first = root;
@@ -1285,14 +1283,6 @@ bool VendorModelDialog::PruneEmptyBranches(wxTreeItemId parent)
                 return false;
             }
         }
-        if (type == "Vendor" && !_filterTokens.empty()) {
-            auto* vd = static_cast<MVendorTreeItemData*>(tid);
-            if (vd->GetVendor() != nullptr &&
-                CatalogFilterMatchesPath("", vd->GetVendor()->_name))
-            {
-                return false;
-            }
-        }
         TreeCtrl_Navigator->Delete(parent);
         return true;
     }
@@ -1312,8 +1302,9 @@ bool VendorModelDialog::CatalogFilterMatchesPath(const std::string& pathSoFar,
     if (tokens.empty()) {
         return true;
     }
-    // Build a single haystack: "vendor / category / sub / leaf" lower-cased.
-    // Every token must be present somewhere in the haystack (AND-narrow).
+    // Build a single haystack from the caller-provided context plus the
+    // actual leaf label. Every token must be present somewhere in that
+    // combined text (AND-narrow).
     wxString haystack = wxString::FromUTF8(pathSoFar);
     if (!haystack.IsEmpty()) {
         haystack += " / ";
@@ -1330,7 +1321,7 @@ bool VendorModelDialog::CatalogFilterMatchesPath(const std::string& pathSoFar,
 
 void VendorModelDialog::OnCatalogFilterText(wxCommandEvent& /*event*/)
 {
-    _filterTokens.clear();
+    std::vector<wxString> newTokens;
     if (TextCtrl_Filter != nullptr) {
         wxString text = TextCtrl_Filter->GetValue().Lower();
         spdlog::info("VMD::OnCatalogFilterText fired text='{}' rebuilding={}",
@@ -1339,11 +1330,16 @@ void VendorModelDialog::OnCatalogFilterText(wxCommandEvent& /*event*/)
         while (tk.HasMoreTokens()) {
             wxString tok = tk.GetNextToken();
             if (tok.length() >= 2) {
-                _filterTokens.push_back(tok);
+                newTokens.push_back(tok);
             }
         }
-        spdlog::info("VMD::OnCatalogFilterText tokens.size={}", _filterTokens.size());
+        spdlog::info("VMD::OnCatalogFilterText tokens.size={}", newTokens.size());
     }
+    if (newTokens == _filterTokens) {
+        spdlog::info("VMD::OnCatalogFilterText skipped rebuild (token set unchanged)");
+        return;
+    }
+    _filterTokens = std::move(newTokens);
     if (_filterDebounceTimer != nullptr) {
         _filterDebounceTimer->Start(kCatalogFilterDebounceMs, wxTIMER_ONE_SHOT);
         spdlog::info("VMD::OnCatalogFilterText timer started ({}ms)", kCatalogFilterDebounceMs);
@@ -1459,31 +1455,56 @@ bool VendorModelDialog::AddHierachyFiltered(wxTreeItemId parent, MVendor* vendor
     auto models = vendor->GetModels(category->_id);
     for (const auto& model : models)
     {
-        if (!CatalogFilterMatchesPath("", model->_name, tokens)) {
-            continue;
-        }
-
-        wxTreeItemId categoryId = ensureCategory();
         if (model->_wiring.size() > 1)
         {
-            wxTreeItemId tid2 = TreeCtrl_Navigator->AppendItem(categoryId, model->_name, -1, -1, new MModelTreeItemData(model));
+            const bool modelMatches = CatalogFilterMatchesPath(pathSoFar, model->_name, tokens);
+            std::vector<MModelWiring*> matchingWirings;
             for (const auto& wiring : model->_wiring)
             {
-                wxTreeItemId wiringId = TreeCtrl_Navigator->AppendItem(tid2, wiring->_name, -1, -1, new MWiringTreeItemData(wiring));
+                const std::string& wiringLabel = wiring->_name.empty() ? model->_name : wiring->_name;
+                if (CatalogFilterMatchesPath(pathSoFar, wiringLabel, tokens)) {
+                    matchingWirings.push_back(wiring);
+                }
+            }
+            if (!modelMatches && matchingWirings.empty()) {
+                continue;
+            }
+
+            wxTreeItemId categoryId = ensureCategory();
+            wxTreeItemId tid2 = TreeCtrl_Navigator->AppendItem(categoryId, model->_name, -1, -1, new MModelTreeItemData(model));
+            if (modelMatches)
+            {
+                for (const auto& wiring : model->_wiring)
+                {
+                    wxTreeItemId wiringId = TreeCtrl_Navigator->AppendItem(tid2, wiring->_name, -1, -1, new MWiringTreeItemData(wiring));
+                    TreeCtrl_Navigator->SetItemTextColour(wiringId, model->GetColour());
+                }
+            }
+            else
+            {
+                for (auto* wiring : matchingWirings)
+                {
+                    wxTreeItemId wiringId = TreeCtrl_Navigator->AppendItem(tid2, wiring->_name, -1, -1, new MWiringTreeItemData(wiring));
+                    TreeCtrl_Navigator->SetItemTextColour(wiringId, model->GetColour());
+                }
+            }
+            created = true;
+        }
+        else if (CatalogFilterMatchesPath(pathSoFar, model->_name, tokens))
+        {
+            wxTreeItemId categoryId = ensureCategory();
+            if (model->_wiring.empty())
+            {
+                wxTreeItemId modelId = TreeCtrl_Navigator->AppendItem(categoryId, model->_name, -1, -1, new MModelTreeItemData(model));
+                TreeCtrl_Navigator->SetItemTextColour(modelId, model->GetColour());
+            }
+            else
+            {
+                wxTreeItemId wiringId = TreeCtrl_Navigator->AppendItem(categoryId, model->_name, -1, -1, new MWiringTreeItemData(model->_wiring.front()));
                 TreeCtrl_Navigator->SetItemTextColour(wiringId, model->GetColour());
             }
+            created = true;
         }
-        else if (model->_wiring.empty())
-        {
-            wxTreeItemId modelId = TreeCtrl_Navigator->AppendItem(categoryId, model->_name, -1, -1, new MModelTreeItemData(model));
-            TreeCtrl_Navigator->SetItemTextColour(modelId, model->GetColour());
-        }
-        else
-        {
-            wxTreeItemId wiringId = TreeCtrl_Navigator->AppendItem(categoryId, model->_name, -1, -1, new MWiringTreeItemData(model->_wiring.front()));
-            TreeCtrl_Navigator->SetItemTextColour(wiringId, model->GetColour());
-        }
-        created = true;
     }
 
     return created;

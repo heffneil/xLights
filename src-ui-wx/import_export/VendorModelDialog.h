@@ -86,13 +86,15 @@ class VendorModelDialog: public wxDialog
 
     // ----- Catalog filter (experimental) -----
     // Single live-filter input that narrows the tree to model nodes
-    // whose ancestor path (vendor / category / sub-category / model
-    // name) contains EVERY whitespace-separated token from the input
-    // (case-insensitive). Single-character terms are ignored so
-    // transient broad prefixes like "a" do not rebuild the entire
-    // vendor tree while the user is still typing. e.g. "tree EFL" is
-    // two AND-narrowed terms, matching only items whose path contains
-    // both 'tree' and 'efl'.
+    // whose searchable text contains EVERY whitespace-separated token
+    // from the input (case-insensitive). The searchable text is the
+    // vendor name plus the actual item label shown in the tree; category
+    // names only provide context around matching leaves so they do not
+    // create false positives like "Showstopper Snowflake" matching
+    // "showstopper spi" just because it lives under "Spinners".
+    // Single-character terms are ignored so transient broad prefixes
+    // like "a" do not rebuild the entire vendor tree while the user is
+    // still typing.
     // Categories and un-suppressed vendors with no surviving
     // descendants are pruned bottom-up by PruneEmptyBranches. Lives
     // outside wxSmith so the .wxs file does not need to know about it.
@@ -106,11 +108,10 @@ class VendorModelDialog: public wxDialog
     void OnCatalogFilterCancel(wxCommandEvent& event);
     void OnCatalogFilterDebounce(wxTimerEvent& event);
     // Returns true if pathSoFar + leafName contains every token in the
-    // current filter (case-insensitive substring match). pathSoFar is
-    // the ancestor breadcrumb "vendor / category / subcategory" so the
-    // user can filter on hierarchy text — typing "halloween" includes
-    // every descendant of the matching node. Empty filter matches
-    // anything.
+    // current filter (case-insensitive substring match). Callers decide
+    // what belongs in pathSoFar; filtered catalog rebuilds pass the
+    // vendor name so matches can span vendor + item text without letting
+    // category names satisfy search terms on behalf of the leaf.
     bool CatalogFilterMatchesPath(const std::string& pathSoFar,
                                   const std::string& leafName) const;
     bool CatalogFilterMatchesPath(const std::string& pathSoFar,

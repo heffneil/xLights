@@ -12,14 +12,16 @@ XLIGHTS/NUTCRACKER RELEASE NOTES
 ---------------------------------
 2026.08  May ??, 2026
     -enh (Neil)                 Vendor model catalog: add a live-filter input above the tree with whitespace-
-                                tokenized AND-narrowing. Filter is hierarchy-aware (vendor / category / sub-category
-                                / model), so typing "halloween" or a vendor name surfaces the whole sub-tree, and
-                                "tree EFL" is two AND-narrowed terms — both must appear in the path. Empty
+                                tokenized AND-narrowing. Matches are case-insensitive and use vendor + item labels,
+                                while category nodes are kept only as context around surviving results. Empty
                                 categories and vendors are pruned bottom-up, and the filter is debounced 200ms so
                                 fast typing doesn't thrash.
     -bug (Neil)                 Vendor model catalog: filtering now skips building non-matching category branches to
                                 reduce Win32 tree-control churn and avoid hangs when filtering vendors with large
                                 catalogs such as EFL Designs.
+    -bug (Neil)                 Vendor model catalog: live filter now matches against vendor + item labels without
+                                letting category names satisfy search terms, and ignored one-character edits no longer
+                                trigger redundant tree rebuilds while you are still typing.
     -enh (dkulp)                Linux: text rendering switched from wxGraphicsContext (Cairo+Pango) to a portable
                                 FreeType+HarfBuzz+Fontconfig backend in src-core/. Text and Shape effects can now
                                 render on background threads on Linux (previously forced to the main thread because
