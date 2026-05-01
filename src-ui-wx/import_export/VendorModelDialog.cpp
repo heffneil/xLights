@@ -1161,7 +1161,7 @@ void VendorModelDialog::RebuildTreeUI()
         if (!IsVendorSuppressed(it->_name))
         {
             if (filterActive) {
-                AddHierachyFiltered(v, it, it->_categories, _filterTokens, it->_name);
+                AddHierachyFiltered(v, it, it->_categories, _filterTokens, "");
             } else {
                 AddHierachy(v, it, it->_categories, it->_name);
             }
@@ -1303,8 +1303,8 @@ bool VendorModelDialog::CatalogFilterMatchesPath(const std::string& pathSoFar,
         return true;
     }
     // Build a single haystack from the caller-provided context plus the
-    // actual leaf label. Every token must be present somewhere in that
-    // combined text (AND-narrow).
+    // actual leaf label. Filtered catalog rebuilds pass an empty
+    // context here so only the catalog item/model name is searchable.
     wxString haystack = wxString::FromUTF8(pathSoFar);
     if (!haystack.IsEmpty()) {
         haystack += " / ";
@@ -1455,44 +1455,23 @@ bool VendorModelDialog::AddHierachyFiltered(wxTreeItemId parent, MVendor* vendor
     auto models = vendor->GetModels(category->_id);
     for (const auto& model : models)
     {
+        if (!CatalogFilterMatchesPath(pathSoFar, model->_name, tokens)) {
+            continue;
+        }
+
+        wxTreeItemId categoryId = ensureCategory();
         if (model->_wiring.size() > 1)
         {
-            const bool modelMatches = CatalogFilterMatchesPath(pathSoFar, model->_name, tokens);
-            std::vector<MModelWiring*> matchingWirings;
+            wxTreeItemId tid2 = TreeCtrl_Navigator->AppendItem(categoryId, model->_name, -1, -1, new MModelTreeItemData(model));
             for (const auto& wiring : model->_wiring)
             {
-                const std::string& wiringLabel = wiring->_name.empty() ? model->_name : wiring->_name;
-                if (CatalogFilterMatchesPath(pathSoFar, wiringLabel, tokens)) {
-                    matchingWirings.push_back(wiring);
-                }
-            }
-            if (!modelMatches && matchingWirings.empty()) {
-                continue;
-            }
-
-            wxTreeItemId categoryId = ensureCategory();
-            wxTreeItemId tid2 = TreeCtrl_Navigator->AppendItem(categoryId, model->_name, -1, -1, new MModelTreeItemData(model));
-            if (modelMatches)
-            {
-                for (const auto& wiring : model->_wiring)
-                {
-                    wxTreeItemId wiringId = TreeCtrl_Navigator->AppendItem(tid2, wiring->_name, -1, -1, new MWiringTreeItemData(wiring));
-                    TreeCtrl_Navigator->SetItemTextColour(wiringId, model->GetColour());
-                }
-            }
-            else
-            {
-                for (auto* wiring : matchingWirings)
-                {
-                    wxTreeItemId wiringId = TreeCtrl_Navigator->AppendItem(tid2, wiring->_name, -1, -1, new MWiringTreeItemData(wiring));
-                    TreeCtrl_Navigator->SetItemTextColour(wiringId, model->GetColour());
-                }
+                wxTreeItemId wiringId = TreeCtrl_Navigator->AppendItem(tid2, wiring->_name, -1, -1, new MWiringTreeItemData(wiring));
+                TreeCtrl_Navigator->SetItemTextColour(wiringId, model->GetColour());
             }
             created = true;
         }
-        else if (CatalogFilterMatchesPath(pathSoFar, model->_name, tokens))
+        else
         {
-            wxTreeItemId categoryId = ensureCategory();
             if (model->_wiring.empty())
             {
                 wxTreeItemId modelId = TreeCtrl_Navigator->AppendItem(categoryId, model->_name, -1, -1, new MModelTreeItemData(model));
