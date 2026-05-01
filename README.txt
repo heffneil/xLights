@@ -12,15 +12,15 @@ XLIGHTS/NUTCRACKER RELEASE NOTES
 ---------------------------------
 2026.08  May ??, 2026
     -enh (Neil)                 Vendor model catalog: add a live-filter input above the tree with whitespace-
-                                tokenized AND-narrowing. Matches are case-insensitive and use vendor plus
-                                catalog item/model labels, while category nodes are kept only as context around surviving results. Empty
+                                tokenized AND-narrowing. Matches are case-insensitive across the visible
+                                vendor/category/item breadcrumb path, while empty category branches are pruned from the filtered tree. Empty
                                 categories and vendors are pruned bottom-up, and the filter is debounced 200ms so
                                 fast typing doesn't thrash.
     -bug (Neil)                 Vendor model catalog: filtering now skips building non-matching category branches to
                                 reduce Win32 tree-control churn and avoid hangs when filtering vendors with large
                                 catalogs such as EFL Designs.
-    -bug (Neil)                 Vendor model catalog: live filter now matches vendor plus catalog item/model text without
-                                letting category hierarchy satisfy search terms, and ignored one-character edits no longer
+    -bug (Neil)                 Vendor model catalog: live filter now carries the full visible breadcrumb path through
+                                filtered rebuilds, and ignored one-character edits no longer
                                 trigger redundant tree rebuilds while you are still typing.
     -bug (Neil)                 Vendor model catalog: cached category-to-model lookups now avoid repeatedly rescanning
                                 large vendor catalogs during each live-filter rebuild, keeping broad searches responsive.

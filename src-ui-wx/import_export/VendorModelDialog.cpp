@@ -1306,8 +1306,8 @@ bool VendorModelDialog::CatalogFilterMatchesPath(const std::string& pathSoFar,
         return true;
     }
     // Build a single haystack from the caller-provided context plus the
-    // actual leaf label. Filtered catalog rebuilds pass vendor + item
-    // text here while intentionally omitting category names.
+    // actual leaf label. Filtered catalog rebuilds pass the full visible
+    // breadcrumb path here, so vendor and category text both count.
     wxString haystack = wxString::FromUTF8(pathSoFar);
     if (!haystack.IsEmpty()) {
         haystack += " / ";
@@ -1440,6 +1440,9 @@ bool VendorModelDialog::AddHierachyFiltered(wxTreeItemId parent, MVendor* vendor
 {
     wxTreeItemId tid;
     bool created = false;
+    const std::string categoryPath = pathSoFar.empty()
+        ? category->_name
+        : pathSoFar + " / " + category->_name;
     auto ensureCategory = [&]() -> wxTreeItemId {
         if (!created) {
             tid = TreeCtrl_Navigator->AppendItem(parent, category->_name, -1, -1, new MCategoryTreeItemData(category));
@@ -1450,7 +1453,7 @@ bool VendorModelDialog::AddHierachyFiltered(wxTreeItemId parent, MVendor* vendor
 
     for (const auto& child : category->_categories)
     {
-        if (AddHierachyFiltered(ensureCategory(), vendor, child, tokens, pathSoFar)) {
+        if (AddHierachyFiltered(ensureCategory(), vendor, child, tokens, categoryPath)) {
             created = true;
         }
     }
@@ -1460,7 +1463,7 @@ bool VendorModelDialog::AddHierachyFiltered(wxTreeItemId parent, MVendor* vendor
     {
         if (model->_wiring.size() > 1)
         {
-            const bool modelMatches = CatalogFilterMatchesPath(pathSoFar, model->_name, tokens);
+            const bool modelMatches = CatalogFilterMatchesPath(categoryPath, model->_name, tokens);
             std::vector<MModelWiring*> matchingWirings;
             for (const auto& wiring : model->_wiring)
             {
@@ -1468,7 +1471,7 @@ bool VendorModelDialog::AddHierachyFiltered(wxTreeItemId parent, MVendor* vendor
                 if (!wiring->_name.empty()) {
                     wiringSearchText += " / " + wiring->_name;
                 }
-                if (CatalogFilterMatchesPath(pathSoFar, wiringSearchText, tokens)) {
+                if (CatalogFilterMatchesPath(categoryPath, wiringSearchText, tokens)) {
                     matchingWirings.push_back(wiring);
                 }
             }
@@ -1498,7 +1501,7 @@ bool VendorModelDialog::AddHierachyFiltered(wxTreeItemId parent, MVendor* vendor
         }
         else
         {
-            if (!CatalogFilterMatchesPath(pathSoFar, model->_name, tokens)) {
+            if (!CatalogFilterMatchesPath(categoryPath, model->_name, tokens)) {
                 continue;
             }
 

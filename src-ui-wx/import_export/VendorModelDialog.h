@@ -88,11 +88,9 @@ class VendorModelDialog: public wxDialog
     // Single live-filter input that narrows the tree to catalog items
     // whose searchable text contains EVERY whitespace-separated token
     // from the input (case-insensitive). Searchable text is the vendor
-    // name plus the model/item label (and wiring label when present),
-    // but not intermediate category names, so unrelated hierarchy text
-    // cannot create false positives like "Showstopper Snowflake"
-    // matching "showstopper spi" just because it lives under
-    // "Spinners".
+    // name plus the visible category / sub-category / model / wiring
+    // labels, so multi-term queries can match anywhere in the displayed
+    // breadcrumb path such as "efl arch" or "nsr arch".
     // Single-character terms are ignored so transient broad prefixes
     // like "a" do not rebuild the entire vendor tree while the user is
     // still typing.
@@ -110,8 +108,8 @@ class VendorModelDialog: public wxDialog
     void OnCatalogFilterDebounce(wxTimerEvent& event);
     // Returns true if pathSoFar + leafName contains every token in the
     // current filter (case-insensitive substring match). Filtered
-    // catalog rebuilds pass vendor + model/wiring text here while
-    // intentionally omitting category names from the searchable text.
+    // catalog rebuilds pass the full visible breadcrumb path here:
+    // vendor + category/sub-category + model/wiring text.
     bool CatalogFilterMatchesPath(const std::string& pathSoFar,
                                   const std::string& leafName) const;
     bool CatalogFilterMatchesPath(const std::string& pathSoFar,
