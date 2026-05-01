@@ -1157,19 +1157,22 @@ void VendorModelDialog::RebuildTreeUI()
     {
         spdlog::info("VMD::RTUI vendor[{}] '{}' begin", vIdx, it->_name);
         wxTreeItemId v = TreeCtrl_Navigator->AppendItem(root, it->_name, -1, -1, new MVendorTreeItemData(it));
+        const bool vendorMatchesFilter = filterActive &&
+            CatalogFilterMatchesPath("", it->_name, _filterTokens);
         if (first == root)
         {
             first = v;
         }
         if (!IsVendorSuppressed(it->_name))
         {
-            if (filterActive) {
+            if (filterActive && !vendorMatchesFilter) {
                 AddHierachyFiltered(v, it, it->_categories, _filterTokens, it->_name);
-            } else {
+            } else if (!filterActive) {
                 AddHierachy(v, it, it->_categories, it->_name);
             }
         }
-        if (filterActive && TreeCtrl_Navigator->GetChildrenCount(v, false) == 0)
+        if (filterActive && !vendorMatchesFilter &&
+            TreeCtrl_Navigator->GetChildrenCount(v, false) == 0)
         {
             if (first == v) {
                 first = root;

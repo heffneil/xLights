@@ -24,6 +24,8 @@ XLIGHTS/NUTCRACKER RELEASE NOTES
                                 trigger redundant tree rebuilds while you are still typing.
     -bug (Neil)                 Vendor model catalog: cached category-to-model lookups now avoid repeatedly rescanning
                                 large vendor catalogs during each live-filter rebuild, keeping broad searches responsive.
+    -bug (Neil)                 Vendor-only live-filter hits now stay compact instead of materializing the entire vendor
+                                subtree on Windows, so broad searches like EFL do not lock up the dialog.
     -enh (dkulp)                Linux: text rendering switched from wxGraphicsContext (Cairo+Pango) to a portable
                                 FreeType+HarfBuzz+Fontconfig backend in src-core/. Text and Shape effects can now
                                 render on background threads on Linux (previously forced to the main thread because
