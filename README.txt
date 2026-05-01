@@ -22,6 +22,8 @@ XLIGHTS/NUTCRACKER RELEASE NOTES
     -bug (Neil)                 Vendor model catalog: live filter now matches only catalog item/model names without
                                 letting hierarchy text satisfy search terms, and ignored one-character edits no longer
                                 trigger redundant tree rebuilds while you are still typing.
+    -bug (Neil)                 Vendor model catalog: cached category-to-model lookups now avoid repeatedly rescanning
+                                large vendor catalogs during each live-filter rebuild, keeping broad searches responsive.
     -enh (dkulp)                Linux: text rendering switched from wxGraphicsContext (Cairo+Pango) to a portable
                                 FreeType+HarfBuzz+Fontconfig backend in src-core/. Text and Shape effects can now
                                 render on background threads on Linux (previously forced to the main thread because

@@ -16,6 +16,7 @@
 //*)
 
 #include <algorithm>
+#include <unordered_map>
 #include <log.h>
 #include <wx/msgdlg.h>
 #include <wx/stopwatch.h>
@@ -521,19 +522,17 @@ public:
     wxFileName _logoFile;
     std::list<MVendorCategory*> _categories;
     std::list<MModel*> _models;
+    std::unordered_map<std::string, std::vector<MModel*>> _modelsByCategory;
     int _maxModels = 0;
 
-    std::list<MModel*> GetModels(std::string categoryId)
+    const std::vector<MModel*>& GetModels(const std::string& categoryId) const
     {
-        std::list<MModel*> res;
-
-        for (const auto& it : _models) {
-            if (it->InCategory(categoryId)) {
-                res.push_back(it);
-            }
+        static const std::vector<MModel*> empty;
+        auto it = _modelsByCategory.find(categoryId);
+        if (it != _modelsByCategory.end()) {
+            return it->second;
         }
-
-        return res;
+        return empty;
     }
 
     void ParseCategories(pugi::xml_node n)
@@ -649,7 +648,11 @@ public:
                                 if (nn == "model") {
                                     models++;
                                     if (maxModels < 1 || models < _maxModels) {
-                                        _models.push_back(new MModel(m, this));
+                                        auto* model = new MModel(m, this);
+                                        _models.push_back(model);
+                                        for (const auto& categoryId : model->_categoryIds) {
+                                            _modelsByCategory[categoryId].push_back(model);
+                                        }
                                     }
                                 }
                             }
