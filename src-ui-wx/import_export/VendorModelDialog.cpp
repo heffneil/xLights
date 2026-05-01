@@ -1272,6 +1272,14 @@ bool VendorModelDialog::PruneEmptyBranches(wxTreeItemId parent)
     if ((type == "Category" || type == "Vendor") &&
         TreeCtrl_Navigator->GetChildrenCount(parent) == 0)
     {
+        if (type == "Vendor" && !_filterTokens.empty()) {
+            auto* vd = static_cast<MVendorTreeItemData*>(tid);
+            if (vd->GetVendor() != nullptr &&
+                CatalogFilterMatchesPath("", vd->GetVendor()->_name, _filterTokens))
+            {
+                return false;
+            }
+        }
         // Suppressed vendors intentionally have no children (we skipped
         // AddHierachy for them). When no filter is active, leave them
         // in place so the user can still see and un-suppress them via
