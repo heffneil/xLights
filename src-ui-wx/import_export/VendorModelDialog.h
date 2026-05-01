@@ -88,8 +88,11 @@ class VendorModelDialog: public wxDialog
     // Single live-filter input that narrows the tree to model nodes
     // whose ancestor path (vendor / category / sub-category / model
     // name) contains EVERY whitespace-separated token from the input
-    // (case-insensitive). e.g. "tree EFL" is two AND-narrowed terms,
-    // matching only items whose path contains both 'tree' and 'efl'.
+    // (case-insensitive). Single-character terms are ignored so
+    // transient broad prefixes like "a" do not rebuild the entire
+    // vendor tree while the user is still typing. e.g. "tree EFL" is
+    // two AND-narrowed terms, matching only items whose path contains
+    // both 'tree' and 'efl'.
     // Categories and un-suppressed vendors with no surviving
     // descendants are pruned bottom-up by PruneEmptyBranches. Lives
     // outside wxSmith so the .wxs file does not need to know about it.

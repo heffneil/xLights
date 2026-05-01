@@ -1338,7 +1338,7 @@ void VendorModelDialog::OnCatalogFilterText(wxCommandEvent& /*event*/)
         wxStringTokenizer tk(text, " \t");
         while (tk.HasMoreTokens()) {
             wxString tok = tk.GetNextToken();
-            if (!tok.IsEmpty()) {
+            if (tok.length() >= 2) {
                 _filterTokens.push_back(tok);
             }
         }
