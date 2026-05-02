@@ -26,6 +26,8 @@ XLIGHTS/NUTCRACKER RELEASE NOTES
                                 large vendor catalogs during each live-filter rebuild, keeping broad searches responsive.
     -bug (Neil)                 Vendor-only live-filter hits now stay compact instead of materializing the entire vendor
                                 subtree on Windows, so broad searches like EFL do not lock up the dialog.
+    -bug (Neil)                 Vendor-only catalog filter hits are now lazily expandable, so broad searches like EFL
+                                stay responsive while still letting you drill into the matching vendor on demand.
     -enh (dkulp)                Linux: text rendering switched from wxGraphicsContext (Cairo+Pango) to a portable
                                 FreeType+HarfBuzz+Fontconfig backend in src-core/. Text and Shape effects can now
                                 render on background threads on Linux (previously forced to the main thread because

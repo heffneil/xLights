@@ -201,6 +201,7 @@ class VendorModelDialog: public wxDialog
 		void OnButton_InsertModelClick(wxCommandEvent& event);
 		void OnNotebookPanelsPageChanged(wxNotebookEvent& event);
 		void OnTreeCtrl_NavigatorItemActivated(wxTreeEvent& event);
+		void OnTreeCtrl_NavigatorItemExpanding(wxTreeEvent& event);
 		void OnTreeCtrl_NavigatorSelectionChanged(wxTreeEvent& event);
 		void OnHyperlinkCtrl_eMailClick(wxCommandEvent& event);
 		void OnHyperlinkCtrl_WebsiteClick(wxCommandEvent& event);

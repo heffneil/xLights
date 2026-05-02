@@ -905,6 +905,7 @@ VendorModelDialog::VendorModelDialog(wxWindow* parent, const std::string& showFo
     Layout();
 
     Connect(ID_TREECTRL1, wxEVT_COMMAND_TREE_ITEM_ACTIVATED, (wxObjectEventFunction)&VendorModelDialog::OnTreeCtrl_NavigatorItemActivated);
+    Connect(ID_TREECTRL1, wxEVT_COMMAND_TREE_ITEM_EXPANDING, (wxObjectEventFunction)&VendorModelDialog::OnTreeCtrl_NavigatorItemExpanding);
     Connect(ID_TREECTRL1, wxEVT_COMMAND_TREE_SEL_CHANGED, (wxObjectEventFunction)&VendorModelDialog::OnTreeCtrl_NavigatorSelectionChanged);
     TextCtrl_Search->Bind(wxEVT_TEXT, &VendorModelDialog::OnTextCtrl_SearchText, this);
     TextCtrl_Search->Bind(wxEVT_SEARCHCTRL_SEARCH_BTN, &VendorModelDialog::OnButton_SearchClick, this);
@@ -1170,6 +1171,12 @@ void VendorModelDialog::RebuildTreeUI()
             } else if (!filterActive) {
                 AddHierachy(v, it, it->_categories, it->_name);
             }
+        }
+        if (filterActive && vendorMatchesFilter &&
+            TreeCtrl_Navigator->GetChildrenCount(v, false) == 0 &&
+            !IsVendorSuppressed(it->_name) && !it->_categories.empty())
+        {
+            TreeCtrl_Navigator->SetItemHasChildren(v, true);
         }
         if (filterActive && !vendorMatchesFilter &&
             TreeCtrl_Navigator->GetChildrenCount(v, false) == 0)
@@ -1874,6 +1881,30 @@ void VendorModelDialog::OnTreeCtrl_NavigatorItemActivated(wxTreeEvent& event)
     SetCursor(wxCURSOR_DEFAULT);
 
     ValidateWindow();
+}
+
+void VendorModelDialog::OnTreeCtrl_NavigatorItemExpanding(wxTreeEvent& event)
+{
+    wxTreeItemId item = event.GetItem();
+    if (!_treeRebuilding && !_filterTokens.empty() && item.IsOk() &&
+        TreeCtrl_Navigator->GetChildrenCount(item, false) == 0)
+    {
+        auto* tid = static_cast<VendorBaseTreeItemData*>(TreeCtrl_Navigator->GetItemData(item));
+        if (tid != nullptr && tid->GetType() == "Vendor") {
+            auto* vendorData = static_cast<MVendorTreeItemData*>(tid);
+            MVendor* vendor = vendorData->GetVendor();
+            if (vendor != nullptr &&
+                CatalogFilterMatchesPath("", vendor->_name, _filterTokens) &&
+                !IsVendorSuppressed(vendor->_name))
+            {
+                TreeCtrl_Navigator->Freeze();
+                AddHierachyFiltered(item, vendor, vendor->_categories, _filterTokens, vendor->_name);
+                TreeCtrl_Navigator->Thaw();
+                TreeCtrl_Navigator->Refresh();
+            }
+        }
+    }
+    event.Skip();
 }
 
 void VendorModelDialog::OnTreeCtrl_NavigatorSelectionChanged(wxTreeEvent& event)
