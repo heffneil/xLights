@@ -28,6 +28,8 @@ XLIGHTS/NUTCRACKER RELEASE NOTES
                                 subtree on Windows, so broad searches like EFL do not lock up the dialog.
     -bug (Neil)                 Vendor-only catalog filter hits are now lazily expandable, so broad searches like EFL
                                 stay responsive while still letting you drill into the matching vendor on demand.
+    -bug (Neil)                 Windows catalog filter now uses a real placeholder child for compact vendor hits, so
+                                expanding a broad match like EFL actually populates the filtered subtree on demand.
     -enh (dkulp)                Linux: text rendering switched from wxGraphicsContext (Cairo+Pango) to a portable
                                 FreeType+HarfBuzz+Fontconfig backend in src-core/. Text and Shape effects can now
                                 render on background threads on Linux (previously forced to the main thread because

@@ -761,6 +761,12 @@ private:
     MModelWiring* _wiring;
 };
 
+class LazyVendorPlaceholderTreeItemData : public VendorBaseTreeItemData
+{
+public:
+    LazyVendorPlaceholderTreeItemData() : VendorBaseTreeItemData("LazyPlaceholder") { }
+};
+
 //(*IdInit(VendorModelDialog)
 const wxWindowID VendorModelDialog::ID_TREECTRL1 = wxNewId();
 const wxWindowID VendorModelDialog::ID_TEXTCTRL3 = wxNewId();
@@ -1176,7 +1182,8 @@ void VendorModelDialog::RebuildTreeUI()
             TreeCtrl_Navigator->GetChildrenCount(v, false) == 0 &&
             !IsVendorSuppressed(it->_name) && !it->_categories.empty())
         {
-            TreeCtrl_Navigator->SetItemHasChildren(v, true);
+            TreeCtrl_Navigator->AppendItem(v, _("Loading..."), -1, -1,
+                                           new LazyVendorPlaceholderTreeItemData());
         }
         if (filterActive && !vendorMatchesFilter &&
             TreeCtrl_Navigator->GetChildrenCount(v, false) == 0)
@@ -1886,18 +1893,29 @@ void VendorModelDialog::OnTreeCtrl_NavigatorItemActivated(wxTreeEvent& event)
 void VendorModelDialog::OnTreeCtrl_NavigatorItemExpanding(wxTreeEvent& event)
 {
     wxTreeItemId item = event.GetItem();
-    if (!_treeRebuilding && !_filterTokens.empty() && item.IsOk() &&
-        TreeCtrl_Navigator->GetChildrenCount(item, false) == 0)
+    if (!_treeRebuilding && !_filterTokens.empty() && item.IsOk())
     {
         auto* tid = static_cast<VendorBaseTreeItemData*>(TreeCtrl_Navigator->GetItemData(item));
         if (tid != nullptr && tid->GetType() == "Vendor") {
             auto* vendorData = static_cast<MVendorTreeItemData*>(tid);
             MVendor* vendor = vendorData->GetVendor();
+            bool hasOnlyPlaceholderChild = false;
+            if (TreeCtrl_Navigator->GetChildrenCount(item, false) == 1) {
+                wxTreeItemIdValue cookie;
+                wxTreeItemId child = TreeCtrl_Navigator->GetFirstChild(item, cookie);
+                if (child.IsOk()) {
+                    auto* childTid = static_cast<VendorBaseTreeItemData*>(TreeCtrl_Navigator->GetItemData(child));
+                    hasOnlyPlaceholderChild = childTid != nullptr &&
+                        childTid->GetType() == "LazyPlaceholder";
+                }
+            }
             if (vendor != nullptr &&
                 CatalogFilterMatchesPath("", vendor->_name, _filterTokens) &&
-                !IsVendorSuppressed(vendor->_name))
+                !IsVendorSuppressed(vendor->_name) &&
+                hasOnlyPlaceholderChild)
             {
                 TreeCtrl_Navigator->Freeze();
+                TreeCtrl_Navigator->DeleteChildren(item);
                 AddHierachyFiltered(item, vendor, vendor->_categories, _filterTokens, vendor->_name);
                 TreeCtrl_Navigator->Thaw();
                 TreeCtrl_Navigator->Refresh();
@@ -1982,6 +2000,22 @@ void VendorModelDialog::UpdatePanelForItem(wxTreeItemId item)
                 NotebookPanels->SetSelection(1);
                 PopulateModelPanel(((MWiringTreeItemData*)tid)->GetWiring());
                 PopulateVendorPanel(((MWiringTreeItemData*)tid)->GetWiring()->_model->_vendor);
+            }
+            else if (type == "LazyPlaceholder")
+            {
+                auto parent = TreeCtrl_Navigator->GetItemParent(item);
+                auto* parentTid = parent.IsOk()
+                    ? static_cast<VendorBaseTreeItemData*>(TreeCtrl_Navigator->GetItemData(parent))
+                    : nullptr;
+                NotebookPanels->GetPage(0)->Show();
+                NotebookPanels->GetPage(1)->Hide();
+                NotebookPanels->SetSelection(0);
+                if (parentTid != nullptr && parentTid->GetType() == "Vendor") {
+                    PopulateVendorPanel(static_cast<MVendorTreeItemData*>(parentTid)->GetVendor());
+                } else {
+                    PopulateVendorPanel(nullptr);
+                }
+                PopulateModelPanel((MModel*)nullptr);
             }
             else
             {
