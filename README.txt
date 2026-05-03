@@ -30,6 +30,8 @@ XLIGHTS/NUTCRACKER RELEASE NOTES
                                 stay responsive while still letting you drill into the matching vendor on demand.
     -bug (Neil)                 Windows catalog filter now uses a real placeholder child for compact vendor hits, so
                                 expanding a broad match like EFL actually populates the filtered subtree on demand.
+    -bug (Neil)                 Live-filter browsing now skips vendor-side panel refreshes for vendor/category-only hits
+                                on Windows, avoiding hangs when a narrowed vendor result changes while typing.
     -enh (dkulp)                Linux: text rendering switched from wxGraphicsContext (Cairo+Pango) to a portable
                                 FreeType+HarfBuzz+Fontconfig backend in src-core/. Text and Shape effects can now
                                 render on background threads on Linux (previously forced to the main thread because

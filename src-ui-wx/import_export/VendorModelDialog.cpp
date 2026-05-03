@@ -1976,6 +1976,18 @@ void VendorModelDialog::UpdatePanelForItem(wxTreeItemId item)
         if (tid != nullptr)
         {
             std::string type = ((VendorBaseTreeItemData*)tid)->GetType();
+            const bool lightweightFilterSelection = !_filterTokens.empty() &&
+                (type == "Vendor" || type == "Category" || type == "LazyPlaceholder");
+
+            if (lightweightFilterSelection)
+            {
+                NotebookPanels->GetPage(0)->Hide();
+                NotebookPanels->GetPage(1)->Hide();
+                ValidateWindow();
+                SetCursor(wxCURSOR_DEFAULT);
+                busy = false;
+                return;
+            }
 
             if (type == "Vendor")
             {
