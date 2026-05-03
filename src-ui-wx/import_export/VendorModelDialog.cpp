@@ -1983,7 +1983,6 @@ void VendorModelDialog::UpdatePanelForItem(wxTreeItemId item)
             {
                 NotebookPanels->GetPage(0)->Hide();
                 NotebookPanels->GetPage(1)->Hide();
-                ValidateWindow();
                 SetCursor(wxCURSOR_DEFAULT);
                 busy = false;
                 return;
