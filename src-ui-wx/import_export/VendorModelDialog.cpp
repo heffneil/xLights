@@ -1402,11 +1402,16 @@ void VendorModelDialog::OnCatalogFilterDebounce(wxTimerEvent& /*event*/)
         // SetSelection runs first and Windows immediately overwrites it,
         // causing the next keystroke to replace what the user already typed.
         wxSearchCtrl* ctrl = TextCtrl_Filter;
+        spdlog::info("VMD::OnCatalogFilterDebounce before SetFocus text='{}'",
+                     ctrl->GetValue().ToStdString());
         ctrl->SetFocus();
         CallAfter([ctrl]() {
+            spdlog::info("VMD::OnCatalogFilterDebounce CallAfter start text='{}'",
+                         ctrl->GetValue().ToStdString());
             long pos = ctrl->GetLastPosition();
             ctrl->SetSelection(pos, pos);
             ctrl->SetInsertionPointEnd();
+            spdlog::info("VMD::OnCatalogFilterDebounce CallAfter done pos={}", pos);
         });
     }
 }
@@ -1932,6 +1937,8 @@ void VendorModelDialog::OnTreeCtrl_NavigatorSelectionChanged(wxTreeEvent& event)
     if (busy) return;
     busy = true;
     wxTreeItemId startid = event.GetItem();
+    spdlog::info("VMD::OnTreeCtrl_NavigatorSelectionChanged enter item_ok={}",
+                 startid.IsOk());
     // Drop events whose item refers to a node deleted by a prior
     // rebuild. GetItemData returns null for those on Windows. We
     // intentionally do NOT fall back to GetFocusedItem here: a stale
@@ -1953,6 +1960,7 @@ void VendorModelDialog::OnTreeCtrl_NavigatorSelectionChanged(wxTreeEvent& event)
         _lastSearchItem = wxTreeItemId();
     }
     UpdatePanelForItem(startid);
+    spdlog::info("VMD::OnTreeCtrl_NavigatorSelectionChanged exit");
     busy = false;
 }
 
@@ -1976,11 +1984,14 @@ void VendorModelDialog::UpdatePanelForItem(wxTreeItemId item)
         if (tid != nullptr)
         {
             std::string type = ((VendorBaseTreeItemData*)tid)->GetType();
+            spdlog::info("VMD::UpdatePanelForItem type='{}' filter_tokens={}",
+                         type, _filterTokens.size());
             const bool lightweightFilterSelection = !_filterTokens.empty() &&
                 (type == "Vendor" || type == "Category" || type == "LazyPlaceholder");
 
             if (lightweightFilterSelection)
             {
+                spdlog::info("VMD::UpdatePanelForItem lightweight return type='{}'", type);
                 NotebookPanels->GetPage(0)->Hide();
                 NotebookPanels->GetPage(1)->Hide();
                 SetCursor(wxCURSOR_DEFAULT);
