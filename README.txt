@@ -34,6 +34,8 @@ XLIGHTS/NUTCRACKER RELEASE NOTES
                                 on Windows, avoiding hangs when a narrowed vendor result changes while typing.
     -bug (Neil)                 Filtered vendor/category selections on Windows now avoid the extra validation pass during
                                 tree-selection events, reducing hangs when a no-result search narrows back to one vendor.
+    -bug (Neil)                 Filtered vendor tree rebuilds on Windows now skip Freeze/Thaw, avoiding hangs after a
+                                narrow live-filter rebuild completes.
     -enh (dkulp)                Linux: text rendering switched from wxGraphicsContext (Cairo+Pango) to a portable
                                 FreeType+HarfBuzz+Fontconfig backend in src-core/. Text and Shape effects can now
                                 render on background threads on Linux (previously forced to the main thread because

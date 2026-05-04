@@ -1132,15 +1132,28 @@ void VendorModelDialog::RebuildTreeUI()
     struct RebuildScope {
         bool& flag;
         wxTreeCtrl* tree;
-        explicit RebuildScope(bool& f, wxTreeCtrl* t) : flag(f), tree(t) {
+        bool freezeTree;
+        explicit RebuildScope(bool& f, wxTreeCtrl* t, bool freeze)
+            : flag(f), tree(t), freezeTree(freeze) {
             flag = true;
-            tree->Freeze();
+            if (freezeTree) {
+                tree->Freeze();
+            }
         }
         ~RebuildScope() {
-            tree->Thaw();
+            if (freezeTree) {
+                tree->Thaw();
+            }
             flag = false;
         }
-    } guard(_treeRebuilding, TreeCtrl_Navigator);
+    };
+    const bool filterActive = !_filterTokens.empty();
+#if defined(_WIN32) || defined(__WXMSW__)
+    const bool freezeTreeDuringRebuild = !filterActive;
+#else
+    const bool freezeTreeDuringRebuild = true;
+#endif
+    RebuildScope guard(_treeRebuilding, TreeCtrl_Navigator, freezeTreeDuringRebuild);
 
     // The tree about to be deleted may contain _lastSearchItem (from
     // master's F3 search). Drop it now — leaving a stale wxTreeItemId
@@ -1157,7 +1170,6 @@ void VendorModelDialog::RebuildTreeUI()
     spdlog::info("VMD::RTUI step 3: AddRoot");
     wxTreeItemId root = TreeCtrl_Navigator->AddRoot("Vendors");
     wxTreeItemId first = root;
-    const bool filterActive = !_filterTokens.empty();
     spdlog::info("VMD::RTUI step 4: vendor loop start");
     int vIdx = 0;
     for (const auto& it : _vendors)
