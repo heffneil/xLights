@@ -12,7 +12,10 @@ XLIGHTS/NUTCRACKER RELEASE NOTES
 ---------------------------------
 2026.09  May ??, 2026
     -enh (Neil)                 Custom Model Wiring view: header overlay now includes a "Total Nodes: N" line below
-                                Rotation so you can see the model's pixel count at a glance without counting.
+                                Rotation so you can see the model's pixel count at a glance without having to scan
+                                for the largest number in the diagram. Also color-codes the first/last node of each
+                                string — green = start, blue = end — matching the Layout tab's TwoPointScreenLocation
+                                start/end handle convention.
     -bug (scott)                Fix HTDemucs ONNX model download failing: the 12-second total curl timeout set for
                                 short API calls was also killing the large-file download before it could complete.
     -bug (dkulp)                Backup: switch the per-file copy from wxCopyFile to std::filesystem::copy_file so
