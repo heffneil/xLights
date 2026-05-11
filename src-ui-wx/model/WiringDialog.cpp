@@ -362,23 +362,33 @@ void WiringDialog::RenderNodes(wxBitmap& bitmap, std::map<int, std::map<int, std
         string++;
     }
 
-    // now the circles
+    // now the circles. Color convention matches the Layout tab's
+    // TwoPointScreenLocation handles: first node of each string is green
+    // (start), last node is blue (end), and the rest use the theme's
+    // default node colors. Helps the user visually trace where each
+    // wired string begins and ends when prepping a physical prop.
     for (const auto& itp : points) {
-        bool first = true;
-        dc.SetBrush(wxBrush(_selectedTheme.messageAltFill));
-        dc.SetPen(wxPen(_selectedTheme.messageAltFill, penWidth));
+        if (itp.second.empty()) continue;
+        size_t count = itp.second.size();
+        size_t idx = 0;
         for (const auto& it : itp.second) {
+            if (idx == 0) {
+                dc.SetBrush(wxBrush(*wxGREEN));
+                dc.SetPen(wxPen(*wxGREEN, penWidth));
+            } else if (idx == count - 1) {
+                dc.SetBrush(wxBrush(*wxBLUE));
+                dc.SetPen(wxPen(*wxBLUE, penWidth));
+            } else {
+                dc.SetBrush(wxBrush(_selectedTheme.nodeFill));
+                dc.SetPen(wxPen(_selectedTheme.nodeOutline, penWidth));
+            }
             int x = (width - it.second.front().x) * pageWidth / width;
             if (!_rear) {
                 x = pageWidth - x + FRONT_X_ADJUST;
             }
             int y = it.second.front().y * pageHeight / height;
             dc.DrawCircle((AdjustX(x, printer) * _zoom) + _start.x, (AdjustY(y) * _zoom) + _start.y, r);
-            if(first) {
-                dc.SetBrush(wxBrush(_selectedTheme.nodeFill));
-                dc.SetPen(wxPen(_selectedTheme.nodeOutline, penWidth));
-                first = false;
-            }
+            ++idx;
         }
     }
 
@@ -495,11 +505,26 @@ void WiringDialog::RenderMultiLight(wxBitmap& bitmap, std::map<int, std::map<int
         if (r < 3) r = 3;
     }
 
+    // Per-node color cycles through the palette so different strings
+    // are visually distinct, but the first and last node of each string
+    // are forced to green / blue respectively to match the Layout tab's
+    // TwoPointScreenLocation start/end handle convention.
     for (auto itp = points.begin(); itp != points.end(); ++itp)
     {
+        if (itp->second.empty()) continue;
+        size_t count = itp->second.size();
+        size_t idx = 0;
         for (auto it = itp->second.begin(); it != itp->second.end(); ++it)
         {
-            if (_selectedTheme.multiLightDark)
+            if (idx == 0)
+            {
+                dc.SetBrush(wxBrush(*wxGREEN, wxBRUSHSTYLE_SOLID));
+            }
+            else if (idx == count - 1)
+            {
+                dc.SetBrush(wxBrush(*wxBLUE, wxBRUSHSTYLE_SOLID));
+            }
+            else if (_selectedTheme.multiLightDark)
             {
                 dc.SetBrush(wxBrush(*colors[cindex], wxBRUSHSTYLE_SOLID));
             }
@@ -521,6 +546,7 @@ void WiringDialog::RenderMultiLight(wxBitmap& bitmap, std::map<int, std::map<int
 
             cindex++;
             cindex %= colorcnt;
+            ++idx;
         }
     }
 
