@@ -2138,6 +2138,7 @@ void ControllerModelDialog::ShowFor(xLightsFrame* frame, Controller* controller)
 
     for (auto* dlg : s_openDialogs) {
         if (dlg->_controller == controller) {
+            dlg->Show();
             dlg->Raise();
             dlg->SetFocus();
             return;
@@ -2454,6 +2455,8 @@ ControllerModelDialog::ControllerModelDialog(wxWindow* parent, std::unique_ptr<U
     Layout();
 
     Bind(wxEVT_CLOSE_WINDOW, &ControllerModelDialog::OnVisualiserClose, this);
+    // wx's default Escape handling ends the dialog, which only hides a modeless one
+    Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { Close(); }, wxID_CANCEL);
 
     PanelModels->SetFocus();
 }
@@ -4400,7 +4403,8 @@ void ControllerModelDialog::OnPanelControllerKeyDown(wxKeyEvent& event)
     }
 
     if (event.GetKeyCode() == WXK_ESCAPE) {
-        EndDialog(wxCLOSE);
+        Close();
+        return;
     }
     event.Skip();
 }
@@ -4412,7 +4416,8 @@ void ControllerModelDialog::OnKeyDown(wxKeyEvent& event)
     }
 
     if (event.GetKeyCode() == WXK_ESCAPE) {
-        EndDialog(wxCLOSE);
+        Close();
+        return;
     }
     event.Skip();
 }
@@ -4424,7 +4429,8 @@ void ControllerModelDialog::OnPanelModelsKeyDown(wxKeyEvent& event)
     }
 
     if (event.GetKeyCode() == WXK_ESCAPE) {
-        EndDialog(wxCLOSE);
+        Close();
+        return;
     }
     event.Skip();
 }
