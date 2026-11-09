@@ -125,7 +125,7 @@ void DmxMovingHeadAdvPropertyAdapter::AddTypeProperties(wxPropertyGridInterface*
     DmxComponentPropertyHelpers::AddMeshProperties(grid, *_mha.GetHeadMesh());
 
     grid->Append(new wxPropertyCategory("Position Zones", "PositionZones"));
-    auto pz = grid->Append(new PositionZonePopupProperty(_mha, "Zones", "PositionZoneConfig", CLICK_TO_EDIT));
+    auto pz = grid->Append(new PositionZonePopupProperty(_mha, wxString::Format("Zones (%zu)", _mha.GetPositionZones().size()), "PositionZoneConfig", CLICK_TO_EDIT));
     grid->LimitPropertyEditing(pz);
 
     grid->Append(new wxPropertyCategory("Common Properties", "CommonProperties"));
